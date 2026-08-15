@@ -1,0 +1,874 @@
+	object_const_def
+	const ROUTE36NATIONALPARKGATE_OFFICER1
+	const ROUTE36NATIONALPARKGATE_YOUNGSTER1
+	const ROUTE36NATIONALPARKGATE_YOUNGSTER2
+	const ROUTE36NATIONALPARKGATE_ROCKER
+	const ROUTE36NATIONALPARKGATE_POKEFAN_M
+	const ROUTE36NATIONALPARKGATE_YOUNGSTER3
+	const ROUTE36NATIONALPARKGATE_YOUNGSTER4
+	const ROUTE36NATIONALPARKGATE_LASS
+	const ROUTE36NATIONALPARKGATE_YOUNGSTER5
+	const ROUTE36NATIONALPARKGATE_YOUNGSTER6
+	const ROUTE36NATIONALPARKGATE_YOUNGSTER7
+	const ROUTE36NATIONALPARKGATE_OFFICER2
+
+Route36NationalParkGate_MapScripts:
+	def_scene_scripts
+	scene_script Route36NationalParkGateNoop1Scene,             SCENE_ROUTE36NATIONALPARKGATE_NOOP
+	scene_script Route36NationalParkGateNoop2Scene,             SCENE_ROUTE36NATIONALPARKGATE_UNUSED
+	scene_script Route36NationalParkGateLeaveContestEarlyScene, SCENE_ROUTE36NATIONALPARKGATE_LEAVE_CONTEST_EARLY
+
+	def_callbacks
+	callback MAPCALLBACK_NEWMAP, Route36NationalParkGateCheckIfContestRunningCallback
+	callback MAPCALLBACK_OBJECTS, Route36NationalParkGateCheckIfContestAvailableCallback
+
+Route36NationalParkGateNoop1Scene:
+	end
+
+Route36NationalParkGateNoop2Scene:
+	end
+
+Route36NationalParkGateLeaveContestEarlyScene:
+	sdefer Route36NationalParkGateLeavingContestEarlyScript
+	end
+
+Route36NationalParkGateCheckIfContestRunningCallback:
+	checkflag ENGINE_BUG_CONTEST_TIMER
+	iftrue .BugContestIsRunning
+	setscene SCENE_ROUTE36NATIONALPARKGATE_NOOP
+	endcallback
+
+.BugContestIsRunning:
+	setscene SCENE_ROUTE36NATIONALPARKGATE_LEAVE_CONTEST_EARLY
+	endcallback
+
+Route36NationalParkGateCheckIfContestAvailableCallback:
+	checkevent EVENT_WARPED_FROM_ROUTE_35_NATIONAL_PARK_GATE
+	iftrue .Return
+	readvar VAR_WEEKDAY
+	ifequal TUESDAY, .SetContestOfficer
+	ifequal THURSDAY, .SetContestOfficer
+	ifequal SATURDAY, .SetContestOfficer
+	checkflag ENGINE_BUG_CONTEST_TIMER
+	iftrue .SetContestOfficer
+	disappear ROUTE36NATIONALPARKGATE_OFFICER1
+	appear ROUTE36NATIONALPARKGATE_OFFICER2
+	endcallback
+
+.SetContestOfficer:
+	appear ROUTE36NATIONALPARKGATE_OFFICER1
+	disappear ROUTE36NATIONALPARKGATE_OFFICER2
+.Return:
+	endcallback
+
+Route36NationalParkGateLeavingContestEarlyScript:
+	turnobject PLAYER, UP
+	opentext
+	readvar VAR_CONTESTMINUTES
+	addval 1
+	getnum STRING_BUFFER_3
+	writetext Route36NationalParkGateOfficer1WantToFinishText
+	yesorno
+	iffalse .GoBackToContest
+	writetext Route36NationalParkGateOfficer1WaitHereForAnnouncementText
+	waitbutton
+	closetext
+	special FadeOutToBlack
+	special ReloadSpritesNoPalettes
+	scall .CopyContestants
+	disappear ROUTE36NATIONALPARKGATE_OFFICER1
+	appear ROUTE36NATIONALPARKGATE_OFFICER2
+	applymovement PLAYER, Route36NationalParkGatePlayerWaitWithContestantsMovement
+	pause 15
+	special FadeInFromBlack
+	jumpstd BugContestResultsScript
+
+.GoBackToContest:
+	writetext Route36NationalParkGateOfficer1OkGoFinishText
+	waitbutton
+	closetext
+	turnobject PLAYER, LEFT
+	playsound SFX_EXIT_BUILDING
+	special FadeOutToWhite
+	waitsfx
+	warp NATIONAL_PARK_BUG_CONTEST, 33, 18
+	end
+
+.CopyContestants:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_1A
+	iftrue .Not1
+	appear ROUTE36NATIONALPARKGATE_YOUNGSTER1
+.Not1:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_2A
+	iftrue .Not2
+	appear ROUTE36NATIONALPARKGATE_YOUNGSTER2
+.Not2:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_3A
+	iftrue .Not3
+	appear ROUTE36NATIONALPARKGATE_ROCKER
+.Not3:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_4A
+	iftrue .Not4
+	appear ROUTE36NATIONALPARKGATE_POKEFAN_M
+.Not4:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_5A
+	iftrue .Not5
+	appear ROUTE36NATIONALPARKGATE_YOUNGSTER3
+.Not5:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_6A
+	iftrue .Not6
+	appear ROUTE36NATIONALPARKGATE_YOUNGSTER4
+.Not6:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_7A
+	iftrue .Not7
+	appear ROUTE36NATIONALPARKGATE_LASS
+.Not7:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_8A
+	iftrue .Not8
+	appear ROUTE36NATIONALPARKGATE_YOUNGSTER5
+.Not8:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_9A
+	iftrue .Not9
+	appear ROUTE36NATIONALPARKGATE_YOUNGSTER6
+.Not9:
+	checkevent EVENT_BUG_CATCHING_CONTESTANT_10A
+	iftrue .Not10
+	appear ROUTE36NATIONALPARKGATE_YOUNGSTER7
+.Not10:
+	special UpdateSprites
+	end
+
+Route36OfficerScriptContest:
+	readvar VAR_WEEKDAY
+	ifequal SUNDAY, _ContestNotOn
+	ifequal MONDAY, _ContestNotOn
+	ifequal WEDNESDAY, _ContestNotOn
+	ifequal FRIDAY, _ContestNotOn
+	faceplayer
+	opentext
+	checkflag ENGINE_DAILY_BUG_CONTEST
+	iftrue Route36Officer_ContestHasConcluded
+	scall Route36ParkGate_DayToText
+	writetext Route36NationalParkGateOfficer1AskToParticipateText
+	yesorno
+	iffalse .DecidedNotToJoinContest
+	readvar VAR_PARTYCOUNT
+	ifgreater 1, .LeaveMonsWithOfficer
+	special ContestDropOffMons
+	clearevent EVENT_LEFT_MONS_WITH_CONTEST_OFFICER
+.ResumeStartingContest:
+	setflag ENGINE_BUG_CONTEST_TIMER
+	special PlayMapMusic
+	writetext Route36NationalParkGateOfficer1GiveParkBallsText
+	promptbutton
+	waitsfx
+	writetext Route36NationalParkGatePlayerReceivedParkBallsText
+	playsound SFX_ITEM
+	waitsfx
+	writetext Route36NationalParkGateOfficer1ExplainsRulesText
+	waitbutton
+	closetext
+	setflag ENGINE_BUG_CONTEST_TIMER
+	special GiveParkBalls
+	turnobject PLAYER, LEFT
+	playsound SFX_EXIT_BUILDING
+	special FadeOutToWhite
+	waitsfx
+	special SelectRandomBugContestContestants
+	warp NATIONAL_PARK_BUG_CONTEST, 33, 18
+	end
+
+.LeaveMonsWithOfficer:
+	readvar VAR_PARTYCOUNT
+	ifless PARTY_LENGTH, .ContinueLeavingMons
+	readvar VAR_BOXSPACE
+	ifequal 0, .BoxFull
+.ContinueLeavingMons:
+	special CheckFirstMonIsEgg
+	ifequal TRUE, .FirstMonIsEgg
+	writetext Route36NationalParkGateOfficer1AskToUseFirstMonText
+	yesorno
+	iffalse .RefusedToLeaveMons
+	special ContestDropOffMons
+	iftrue .FirstMonIsFainted
+	setevent EVENT_LEFT_MONS_WITH_CONTEST_OFFICER
+	writetext Route36NationalParkGateOfficer1WellHoldYourMonText
+	promptbutton
+	writetext Route36NationalParkGatePlayersMonLeftWithHelperText
+	playsound SFX_GOT_SAFARI_BALLS
+	waitsfx
+	promptbutton
+	sjump .ResumeStartingContest
+
+.DecidedNotToJoinContest:
+	writetext Route36NationalParkGateOfficer1TakePartInFutureText
+	waitbutton
+	closetext
+	end
+
+.RefusedToLeaveMons:
+	writetext Route36NationalParkGateOfficer1ChooseMonAndComeBackText
+	waitbutton
+	closetext
+	end
+
+.FirstMonIsFainted:
+	writetext Route36NationalParkGateOfficer1FirstMonCantBattleText
+	waitbutton
+	closetext
+	end
+
+.BoxFull:
+	writetext Route36NationalParkGateOfficer1MakeRoomText
+	waitbutton
+	closetext
+	end
+
+.FirstMonIsEgg:
+	writetext Route36NationalParkGateOfficer1EggAsFirstMonText
+	waitbutton
+	closetext
+	end
+
+Route36Officer_ContestHasConcluded:
+	checkevent EVENT_CONTEST_OFFICER_HAS_SUN_STONE
+	iftrue .Sunstone
+	checkevent EVENT_CONTEST_OFFICER_HAS_EVERSTONE
+	iftrue .Everstone
+	checkevent EVENT_CONTEST_OFFICER_HAS_GOLD_BERRY
+	iftrue .GoldBerry
+	checkevent EVENT_CONTEST_OFFICER_HAS_BERRY
+	iftrue .Berry
+	writetext Route36NationalParkGateOfficer1ContestIsOverText
+	waitbutton
+	closetext
+	end
+
+.Sunstone:
+	writetext Route36NationalParkGateOfficer1HeresThePrizeText
+	promptbutton
+	verbosegiveitem SUN_STONE
+	iffalse .BagFull
+	clearevent EVENT_CONTEST_OFFICER_HAS_SUN_STONE
+	closetext
+	end
+
+.Everstone:
+	writetext Route36NationalParkGateOfficer1HeresThePrizeText
+	promptbutton
+	verbosegiveitem EVERSTONE
+	iffalse .BagFull
+	clearevent EVENT_CONTEST_OFFICER_HAS_EVERSTONE
+	closetext
+	end
+
+.GoldBerry:
+	writetext Route36NationalParkGateOfficer1HeresThePrizeText
+	promptbutton
+	verbosegiveitem GOLD_BERRY
+	iffalse .BagFull
+	clearevent EVENT_CONTEST_OFFICER_HAS_GOLD_BERRY
+	closetext
+	end
+
+.Berry:
+	writetext Route36NationalParkGateOfficer1HeresThePrizeText
+	promptbutton
+	verbosegiveitem BERRY
+	iffalse .BagFull
+	clearevent EVENT_CONTEST_OFFICER_HAS_BERRY
+	closetext
+	end
+
+.BagFull:
+	writetext Route36NationalParkGateOfficer1WellHoldPrizeText
+	waitbutton
+	closetext
+	end
+
+_ContestNotOn:
+	jumptextfaceplayer Route36NationalParkGateOfficer1SomeMonOnlySeenInParkText
+
+Route36NationalParkGateOfficerScript:
+	faceplayer
+	opentext
+	checkflag ENGINE_DAILY_BUG_CONTEST
+	iftrue Route36Officer_ContestHasConcluded
+	writetext Route36NationalParkGateOfficer1SomeMonOnlySeenInParkText
+	waitbutton
+	closetext
+	end
+
+Route36ParkGate_DayToText:
+	jumpstd DayToTextScript
+	end
+
+BugCatchingContestant1BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant1BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant1BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant2BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant2BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant2BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant3BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant3BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant3BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant4BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant4BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant4BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant5BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant5BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant5BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant6BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant6BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant6BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant7BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant7BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant7BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant8BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant8BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant8BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant9BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant9BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant9BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+BugCatchingContestant10BScript:
+	faceplayer
+	opentext
+	checkevent EVENT_TEMPORARY_UNTIL_MAP_RELOAD_1
+	iffalse .StillCompeting
+	writetext BugCatchingContestant10BText
+	waitbutton
+	closetext
+	end
+
+.StillCompeting:
+	writetext BugCatchingContestant10BStillCompetingText
+	waitbutton
+	closetext
+	end
+
+UnusedBugCatchingContestExplanationSign: ; unreferenced
+; duplicate of BugCatchingContestExplanationSign in Route35NationalParkGate.asm
+	jumptext UnusedBugCatchingContestExplanationText
+
+Route36NationalParkGatePlayerWaitWithContestantsMovement:
+	big_step DOWN
+	big_step RIGHT
+	turn_head UP
+	step_end
+
+Route36NationalParkGateOfficer1AskToParticipateText:
+	text "Σήμερα είναι @"
+	text_ram wStringBuffer3
+	text "."
+	line "Αυτό σημαίνει πως"
+
+	para "έχει Αγώνα Εντόμων"
+	line "σήμερα."
+
+	para "Οι κανόνες"
+	line "είναι απλοί."
+
+	para "Πάρε ένα"
+	line "#μον, πιάσε"
+
+	para "έντομα #μον και"
+	line "θα κριθείς."
+
+	para "Θέλεις να"
+	line "προσπαθήσεις;"
+	done
+
+Route36NationalParkGateOfficer1GiveParkBallsText:
+	text "Αυτές είναι PARK"
+	line "BALLS για τον"
+	cont "Αγώνα."
+	done
+
+Route36NationalParkGatePlayerReceivedParkBallsText:
+	text "<PLAYER> πήρε"
+	line "{d:BUG_CONTEST_BALLS} PARK BALLS."
+	done
+
+Route36NationalParkGateOfficer1ExplainsRulesText:
+	text "Το άτομο που"
+	line "έχει το πιο"
+	cont "δυνατό έντομο"
+	cont "κερδίζει."
+
+	para "Έχεις {d:BUG_CONTEST_MINUTES}"
+	line "λεπτά."
+
+	para "Αν ξέμεινεις από"
+	line "PARK BALLS,"
+	cont "έχεις τελειώσει."
+
+	para "Κρατάς το τε-"
+	line "λευταίο #μον"
+	cont "που πιάνεις."
+
+	para "Βγες έξω και πιά-"
+	line "σε δυνατά έντομα"
+
+	para "#μον που"
+	line "βρίσκεις!"
+	done
+
+Route36NationalParkGateOfficer1AskToUseFirstMonText:
+	text "Ωχ…"
+
+	para "Έχεις πάνω από"
+	line "ένα #μον."
+
+	para "Θα πάρεις"
+	line "@"
+	text_ram wStringBuffer3
+	text ", το"
+
+	para "πρώτο #μον"
+	line "στην ομάδα."
+
+	para "Είναι OK με"
+	line "εσάς;"
+	done
+
+Route36NationalParkGateOfficer1WellHoldYourMonText:
+	text "Καλά, κρατάμε τα"
+	line "υπόλοιπα #μον"
+	cont "όσο συμμετέχεις."
+	done
+
+Route36NationalParkGatePlayersMonLeftWithHelperText:
+	text "Τα άλλα #μον"
+	line "του <PLAYER> έμειναν"
+	cont "στον ΒΟΗΘΟ!"
+	done
+
+Route36NationalParkGateOfficer1ChooseMonAndComeBackText:
+	text "Διάλεξε το"
+	line "#μον για τον"
+
+	para "Αγώνα, τότε"
+	line "έλα να με δεις."
+	done
+
+Route36NationalParkGateOfficer1TakePartInFutureText:
+	text "OK. Ελπίζουμε"
+	line "να συμμετέχετε"
+	cont "στο μέλλον."
+	done
+
+Route36NationalParkGateOfficer1FirstMonCantBattleText:
+	text "Ωχ…"
+	line "Το πρώτο #μον"
+
+	para "στην ομάδα"
+	line "δεν μάχεται."
+
+	para "Άλλαξε το με"
+	line "#μον που"
+
+	para "θες να βάλεις,"
+	line "και τότε δες με."
+	done
+
+Route36NationalParkGateOfficer1MakeRoomText:
+	text "Ωχ…"
+	line "Και η ομάδα"
+
+	para "και το ΚΟΥΤΙ"
+	line "PC είναι πλήρες."
+
+	para "Δεν έχεις χώρο"
+	line "για το έντομο #"
+	cont "μον που πιάνεις."
+
+	para "Κανε χώρο στην"
+	line "ομάδα ή στο"
+
+	para "ΚΟΥΤΙ PC, τότε"
+	line "έλα δες με."
+	done
+
+Route36NationalParkGateOfficer1EggAsFirstMonText:
+	text "Ωχ…"
+	line "Έχεις ΑΥΓΟ ως"
+
+	para "πρώτο #μον"
+	line "στην ομάδα."
+
+	para "Άλλαξε το"
+	line "με #μον"
+
+	para "που μάχεται,"
+	line "τότε δες με."
+	done
+
+Route36NationalParkGateOfficer1WantToFinishText:
+	text "Έχεις ακόμα @"
+	text_ram wStringBuffer3
+	text_start
+	line "λεπτό(τα) έμειναν."
+
+	para "Θέλεις να"
+	line "τελειώσεις τώρα;"
+	done
+
+Route36NationalParkGateOfficer1WaitHereForAnnouncementText:
+	text "OK. Περίμενε στη"
+	line "Βόρεια Πύλη για"
+
+	para "τις ανακοινώσεις"
+	line "των νικητών."
+	done
+
+Route36NationalParkGateOfficer1OkGoFinishText:
+	text "OK. Έλα"
+	line "πίσω έξω και"
+	cont "τελείωσε."
+	done
+
+Route36NationalParkGateOfficer1ContestIsOverText:
+	text "Ο Αγώνας Σήμερα"
+	line "τελείωσε. Ελπίζου-"
+
+	para "με συμμετέχετε"
+	line "στο μέλλον."
+	done
+
+Route36NationalParkGateOfficer1SomeMonOnlySeenInParkText:
+	text "Κάποια #μον"
+	line "βγαίνουν μόνο"
+	cont "στο ΠΑΡΚΟ."
+	done
+
+BugCatchingContestant1BText:
+	text "DON: Ουάου, με"
+	line "νίκησες. Είσαι"
+	cont "καλος."
+	done
+
+BugCatchingContestant1BStillCompetingText:
+	text "DON: Η τύχη παίζει"
+	line "μεγάλο ρόλο σε αυτό."
+
+	para "Δεν ξέρεις τι"
+	line "#μον θα"
+	cont "εμφανιστεί."
+	done
+
+BugCatchingContestant2BText:
+	text "ED: Σε ζηλεύω."
+	line "Δεν μπορούσα"
+	cont "να παίξω τώρα."
+	done
+
+BugCatchingContestant2BStillCompetingText:
+	text "ED: Μάλλον νικάς"
+	line "με μεγάλο #μον;"
+	done
+
+BugCatchingContestant3BText:
+	text "NICK: Μπράβο!"
+	line "Θα μεγαλώσω τα"
+	cont "#μον μου."
+	done
+
+BugCatchingContestant3BStillCompetingText:
+	text "NICK: Ίσως θα"
+	line "κάνεις μεγάλο σκορ"
+
+	para "για #μον με"
+	line "ασυνήθιστο χρώμα."
+	done
+
+BugCatchingContestant4BText:
+	text "WILLIAM: Είσαι"
+	line "ο νικητής; Τι"
+	cont "έπιασες;"
+	done
+
+BugCatchingContestant4BStillCompetingText:
+	text "WILLIAM: Λοιπόν,"
+	line "νιώθω καλά που"
+
+	para "έπιασα το #μον"
+	line "που ήθελα."
+	done
+
+BugCatchingContestant5BText:
+	text "BENNY: Μπράβο!"
+	line "Κέρδισες τον"
+	cont "σεβασμό μου!"
+	done
+
+BugCatchingContestant5BStillCompetingText:
+	text "BENNY: Έπιασα"
+	line "SCYTHER πριν,"
+	cont "μα δεν κέρδισα."
+	done
+
+BugCatchingContestant6BText:
+	text "BARRY: Το #-"
+	line "μον που έπιασες…"
+	cont "Είναι υπέροχο!"
+	done
+
+BugCatchingContestant6BStillCompetingText:
+	text "BARRY: Είναι πιο"
+	line "εύκολη η νίκη αν"
+
+	para "πιάσεις υψηλό-LEVEL"
+	line "έντομο #μον."
+
+	para "Μα νομίζω πως"
+	line "παίζουν ρόλο και"
+	cont "άλλα πράγματα."
+	done
+
+BugCatchingContestant7BText:
+	text "CINDY: Νίκησες;"
+	line "Θαυμάσια!"
+
+	para "Θα κοίταζες για"
+	line "έντομα #μον"
+	cont "μαζί μου;"
+	done
+
+BugCatchingContestant7BStillCompetingText:
+	text "CINDY: Λατρεύω"
+	line "τα έντομα #μον!"
+	done
+
+BugCatchingContestant8BText:
+	text "JOSH: Δ… Δεν"
+	line "πιστεύω πως"
+	cont "έχασα…"
+	done
+
+BugCatchingContestant8BStillCompetingText:
+	text "JOSH: Άκουσα πως"
+	line "κάποιος κέρδισε"
+	cont "με CATERPIE!"
+	done
+
+BugCatchingContestant9BText:
+	text "SAMUEL: Την επόμενη"
+	line "φορά, θα νικήσω."
+	done
+
+BugCatchingContestant9BStillCompetingText:
+	text "SAMUEL: Φτου."
+	line "Νόμιζα πως θα"
+	cont "έκανα μεγάλο σκορ…"
+	done
+
+BugCatchingContestant10BText:
+	text "KIPP: Θα μου"
+	line "δώσεις συμβολές;"
+
+	para "Θέλω να δω"
+	line "το στυλ σου."
+	done
+
+BugCatchingContestant10BStillCompetingText:
+	text "KIPP: Μελετώ πολύ,"
+	line "μα δεν είναι"
+
+	para "εύκολο να"
+	line "κερδίσεις."
+	done
+
+UnusedSilphScope2Text: ; unreferenced
+; This text is referring to Sudowoodo.
+; The SILPHSCOPE2 was later reworked into the SQUIRTBOTTLE.
+	text "Άκουσα πως ένα"
+	line "#μον μοιάζει"
+	cont "με δέντρο."
+
+	para "Θσ βρεις την"
+	line "ταυτότητα του με"
+	cont "ΦΑΚΟSILPH 2."
+	done
+
+UnusedBugCatchingContestExplanationText:
+; duplicate of BugCatchingContestExplanationText in Route35NationalParkGate.asm
+	text "Ο Αγώνας"
+	line "εντόμων γίνεται"
+
+	para "Τρίτη, Πέμπτη"
+	line "και Σάββατο."
+
+	para "Όχι μόνο παί-"
+	line "ρνεις βραβείο για"
+
+	para "τη συμμετοχή,"
+	line "αλλά κρατάς το"
+
+	para "έντομο #μον"
+	line "που πιάνεις."
+	done
+
+Route36NationalParkGateOfficer1WellHoldPrizeText:
+	text "Ωχ… Ο ΣΑΚΟΣ"
+	line "σου γέμησε."
+
+	para "Θα κρατήσουμε"
+	line "το βραβείο, μα"
+	cont "μόνο για σήμερα."
+
+	para "Κάνε χώρο,"
+	line "και έλα ξανά."
+	done
+
+Route36NationalParkGateOfficer1HeresThePrizeText:
+	text "<PLAYER>;"
+
+	para "Ορίστε το"
+	line "βραβείο που"
+	cont "σου κρατήσαμε."
+	done
+
+Route36NationalParkGate_MapEvents:
+	db 0, 0 ; filler
+
+	def_warp_events
+	warp_event  0,  4, NATIONAL_PARK, 1
+	warp_event  0,  5, NATIONAL_PARK, 2
+	warp_event  9,  4, ROUTE_36, 1
+	warp_event  9,  5, ROUTE_36, 2
+
+	def_coord_events
+
+	def_bg_events
+	bg_event  6,  0, BGEVENT_READ, BugCatchingContestExplanationSign
+
+	def_object_events
+	object_event  0,  3, SPRITE_OFFICER, SPRITEMOVEDATA_STANDING_DOWN, 0, 0, -1, -1, PAL_NPC_GREEN, OBJECTTYPE_SCRIPT, 0, Route36OfficerScriptContest, EVENT_ROUTE_36_NATIONAL_PARK_GATE_OFFICER_CONTEST_DAY
+	object_event  2,  5, SPRITE_YOUNGSTER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_RED, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant1BScript, EVENT_BUG_CATCHING_CONTESTANT_1B
+	object_event  4,  5, SPRITE_YOUNGSTER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_GREEN, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant2BScript, EVENT_BUG_CATCHING_CONTESTANT_2B
+	object_event  2,  6, SPRITE_ROCKER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_BLUE, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant3BScript, EVENT_BUG_CATCHING_CONTESTANT_3B
+	object_event  6,  5, SPRITE_POKEFAN_M, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_BROWN, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant4BScript, EVENT_BUG_CATCHING_CONTESTANT_4B
+	object_event  2,  7, SPRITE_YOUNGSTER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_RED, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant5BScript, EVENT_BUG_CATCHING_CONTESTANT_5B
+	object_event  5,  6, SPRITE_YOUNGSTER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_GREEN, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant6BScript, EVENT_BUG_CATCHING_CONTESTANT_6B
+	object_event  3,  6, SPRITE_LASS, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_BLUE, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant7BScript, EVENT_BUG_CATCHING_CONTESTANT_7B
+	object_event  4,  7, SPRITE_YOUNGSTER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_RED, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant8BScript, EVENT_BUG_CATCHING_CONTESTANT_8B
+	object_event  6,  7, SPRITE_YOUNGSTER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_GREEN, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant9BScript, EVENT_BUG_CATCHING_CONTESTANT_9B
+	object_event  6,  6, SPRITE_YOUNGSTER, SPRITEMOVEDATA_STANDING_UP, 0, 0, -1, -1, PAL_NPC_BLUE, OBJECTTYPE_SCRIPT, 0, BugCatchingContestant10BScript, EVENT_BUG_CATCHING_CONTESTANT_10B
+	object_event  3,  2, SPRITE_OFFICER, SPRITEMOVEDATA_STANDING_DOWN, 0, 0, -1, -1, PAL_NPC_GREEN, OBJECTTYPE_SCRIPT, 0, Route36NationalParkGateOfficerScript, EVENT_ROUTE_36_NATIONAL_PARK_GATE_OFFICER_NOT_CONTEST_DAY
